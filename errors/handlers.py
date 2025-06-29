@@ -1,4 +1,5 @@
 import asyncio
+import io
 from aiogram import Router, types, Bot
 from functools import wraps
 from aiogram.types import ReplyKeyboardRemove, Message
@@ -11,7 +12,7 @@ from aiohttp import ClientConnectorError
 from openai import AuthenticationError, RateLimitError, APIConnectionError, APIError
 
 from .errors import *
-from bot_instance import logger
+from bot_instance import logger, client, bot
 
 
 def db_error_handler(func):
@@ -110,7 +111,8 @@ async def safe_send_message(bott: Bot, recipient, text: str, reply_markup=ReplyK
             elif isinstance(recipient, types.CallbackQuery):
                 msg = await recipient.message.answer(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
             elif isinstance(recipient, int):
-                msg = await bott.send_message(chat_id=recipient, text=text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+                msg = await bott.send_message(chat_id=recipient, text=text, reply_markup=reply_markup,
+                                              parse_mode=ParseMode.HTML)
             else:
                 raise TypeError(f"Неподдерживаемый тип recipient: {type(recipient)}")
 
@@ -126,3 +128,46 @@ async def safe_send_message(bott: Bot, recipient, text: str, reply_markup=ReplyK
         except Exception as e:
             logger.error(str(e))
             return None
+
+
+@gpt_error_handler
+async def create_thread():
+    thread = client.beta.threads.create()
+    return thread.id
+
+
+@gpt_error_handler
+async def transcribe(message: Message) -> str:
+    voice_file = io.BytesIO()
+    voice_file_id = message.voice.file_id
+    file = await bot.get_file(voice_file_id)
+    await bot.download_file(file.file_path, voice_file)
+    voice_file.seek(0)
+    voice_file.name = "voice_message.ogg"
+
+    return client.audio.transcriptions.create(
+        model="whisper-1",
+        file=voice_file,
+        response_format="text"
+    )
+
+
+@gpt_error_handler
+async def gpt_assistant_mes(thread_id, assistant_id, mes) -> str:
+    message = client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=mes
+    )
+
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+
+    messages = client.beta.threads.messages.list(thread_id=thread_id)
+    data = messages.data[0].content[0].text.value.strip()
+
+    if not data:
+        raise ContentError
+    return data

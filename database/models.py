@@ -16,7 +16,14 @@ class Base(AsyncAttrs, DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    tg_id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
+
+
+class Resume(Base):
+    __tablename__ = "resume"
+
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    plain = Column(String, default='')
 
 
 async def async_main():
