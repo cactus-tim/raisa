@@ -10,18 +10,28 @@ from aiogram.exceptions import TelegramBadRequest
 
 
 from errors.handlers import safe_send_message, create_thread, transcribe, gpt_assistant_mes
-from keyboards.keyboards import fb_ikb, get_new
+from keyboards.keyboards import fb_ikb, get_new_vacancy_kb
 from bot_instance import bot, client
 from database.req import *
 
 router = Router()
 
 
+welcome_msg = """
+Привет! 
+Я бот, который поможет описать новую позицию в компании.
+
+Со мной можно общаться текстом и голосовыми сообщениями. 
+
+Чтобы начать напиши - /vacancy или просто новая вакансия.
+"""
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     if not await get_user(message.from_user.id):
         await create_user(message.from_user.id)
-    await safe_send_message(bot, message, 'напиши /vacancy')
+    await safe_send_message(bot, message, welcome_msg, get_new_vacancy_kb())
 
 
 class CreateResume(StatesGroup):
@@ -29,7 +39,7 @@ class CreateResume(StatesGroup):
     waiting_fb = State()
 
 
-@router.callback_query(F.data == 'vacancy')
+@router.message(F.text.lower().contains("новая вакансия"))
 async def create_resume05(callback: CallbackQuery, state: FSMContext):
     thread = await create_thread()
     prompt = await create_extended_prompt()
@@ -91,13 +101,13 @@ async def good_end(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     plain = data.get('plain', '')
     await add_reference(plain)
-    await safe_send_message(bot, callback, text="Спасибо, это будет учтено", reply_markup=get_new)
+    await safe_send_message(bot, callback, text="Спасибо, это будет учтено", reply_markup=get_new_vacancy_kb())
     await callback.answer()
     await state.clear()
 
 
 @router.callback_query(StateFilter(CreateResume.waiting_fb), F.data == 'fb_no')
 async def bad_end(callback: CallbackQuery, state: FSMContext):
-    await safe_send_message(bot, callback, text="Спасибо, это будет учтено", reply_markup=get_new)
+    await safe_send_message(bot, callback, text="Спасибо, это будет учтено", reply_markup=get_new_vacancy_kb())
     await callback.answer()
     await state.clear()

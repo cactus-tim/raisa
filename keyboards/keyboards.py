@@ -1,12 +1,14 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
 
-def get_new() -> InlineKeyboardMarkup:
-    ikb = [
-        [InlineKeyboardButton(text="Новая вакансия", callback_data="vacancy")]
-    ]
-    ikeyboard = InlineKeyboardMarkup(inline_keyboard=ikb)
-    return ikeyboard
+def get_new_vacancy_kb() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text='Новая вакансия')]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
 
 
 def fb_ikb() -> InlineKeyboardMarkup:
