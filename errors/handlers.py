@@ -1,5 +1,6 @@
 import asyncio
 import io
+import re
 from aiogram import Router, types, Bot
 from functools import wraps
 from aiogram.types import ReplyKeyboardRemove, Message
@@ -13,6 +14,15 @@ from openai import AuthenticationError, RateLimitError, APIConnectionError, APIE
 
 from .errors import *
 from bot_instance import logger, client, bot
+
+
+# _MD_V2_SPECIAL = r'.!()-+'
+# _ESCAPE_PATTERN = re.compile(r'([{}])'.format(re.escape(_MD_V2_SPECIAL)))
+
+
+def escape_md_v2(text: str) -> str:
+    return text
+    # return _ESCAPE_PATTERN.sub(r'\\\1', text)
 
 
 def db_error_handler(func):
@@ -107,11 +117,13 @@ async def safe_send_message(bott: Bot, recipient, text: str, reply_markup=ReplyK
     for attempt in range(retry_attempts):
         try:
             if isinstance(recipient, types.Message):
-                msg = await recipient.answer(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+                msg = await recipient.answer(escape_md_v2(text), reply_markup=reply_markup,
+                                             parse_mode=ParseMode.HTML)
             elif isinstance(recipient, types.CallbackQuery):
-                msg = await recipient.message.answer(text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+                msg = await recipient.message.answer(escape_md_v2(text), reply_markup=reply_markup,
+                                                     parse_mode=ParseMode.HTML)
             elif isinstance(recipient, int):
-                msg = await bott.send_message(chat_id=recipient, text=text, reply_markup=reply_markup,
+                msg = await bott.send_message(chat_id=recipient, text=escape_md_v2(text), reply_markup=reply_markup,
                                               parse_mode=ParseMode.HTML)
             else:
                 raise TypeError(f"Неподдерживаемый тип recipient: {type(recipient)}")

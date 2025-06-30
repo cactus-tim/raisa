@@ -10,7 +10,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 
 from errors.handlers import safe_send_message, create_thread, transcribe, gpt_assistant_mes
-from keyboards.keyboards import fb_ikb, get_end_ikb
+from keyboards.keyboards import fb_ikb, get_new
 from bot_instance import bot, client
 from database.req import *
 
@@ -29,9 +29,18 @@ class CreateResume(StatesGroup):
     waiting_fb = State()
 
 
+@router.callback_query(F.data == 'vacancy')
+async def create_resume05(callback: CallbackQuery, state: FSMContext):
+    thread = await create_thread()
+    prompt = await create_extended_prompt()
+    msg: str = await gpt_assistant_mes(thread, 'asst_NtVWkelDriet0dw9fSf8WYdr', prompt)
+    await state.set_data({'thread': thread})
+    await safe_send_message(bot, callback, msg)
+    await state.set_state(CreateResume.create_loop)
+
+
 @router.message(Command('vacancy'))
 async def create_resume(message: Message, state: FSMContext):
-    await safe_send_message(bot, message, text="")
     thread = await create_thread()
     prompt = await create_extended_prompt()
     msg: str = await gpt_assistant_mes(thread, 'asst_NtVWkelDriet0dw9fSf8WYdr', prompt)
@@ -69,7 +78,7 @@ async def gpt_conv(message: Message, state: FSMContext):
         await state.set_state(CreateResume.waiting_fb)
     else:
         # try:
-        await safe_send_message(bot, message, text=msg, reply_markup=get_end_ikb())
+        await safe_send_message(bot, message, text=msg)
         # except TelegramBadRequest as e:
         #     msg: str = await gpt_assistant_mes(thread_id=thread, assistant_id='asst_NtVWkelDriet0dw9fSf8WYdr',
         #                                        mes="Напиши еще раз, но не используй никакие символы или теги, "
@@ -77,25 +86,18 @@ async def gpt_conv(message: Message, state: FSMContext):
         #     await safe_send_message(bot, message, text=msg, reply_markup=get_end_ikb())
 
 
-@router.callback_query(StateFilter(CreateResume.create_loop), F.data == 'end_search')
-async def bad_end(callback: CallbackQuery, state: FSMContext):
-    await safe_send_message(bot, callback, text="Вы закончили создание вакансии, можете попробовать заново")
-    await callback.answer()
-    await state.clear()
-
-
 @router.callback_query(StateFilter(CreateResume.waiting_fb), F.data == 'fb_yes')
 async def good_end(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     plain = data.get('plain', '')
     await add_reference(plain)
-    await safe_send_message(bot, callback, text="Спасибо, это будет учтено")
+    await safe_send_message(bot, callback, text="Спасибо, это будет учтено", reply_markup=get_new)
     await callback.answer()
     await state.clear()
 
 
 @router.callback_query(StateFilter(CreateResume.waiting_fb), F.data == 'fb_no')
 async def bad_end(callback: CallbackQuery, state: FSMContext):
-    await safe_send_message(bot, callback, text="Спасибо, это будет учтено")
+    await safe_send_message(bot, callback, text="Спасибо, это будет учтено", reply_markup=get_new)
     await callback.answer()
     await state.clear()

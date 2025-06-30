@@ -1,9 +1,9 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
 
-def get_end_ikb() -> InlineKeyboardMarkup:
+def get_new() -> InlineKeyboardMarkup:
     ikb = [
-        [InlineKeyboardButton(text="Закончить создание вакансии", callback_data="end_search")]
+        [InlineKeyboardButton(text="Новая вакансия", callback_data="vacancy")]
     ]
     ikeyboard = InlineKeyboardMarkup(inline_keyboard=ikb)
     return ikeyboard
