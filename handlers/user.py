@@ -75,16 +75,16 @@ async def gpt_conv(message: Message, state: FSMContext):
         mes=text
     )
 
-    res_pattern = msg.find('Ваше резюме готово, пожалуйста оцените его')
+    res_pattern = msg.startswith('&')
     if res_pattern != -1:
         # try:
-        await safe_send_message(bot, message, text=msg, reply_markup=fb_ikb())
+        await safe_send_message(bot, message, text=msg[1:], reply_markup=fb_ikb())
         # except TelegramBadRequest as e:
         #     msg: str = await gpt_assistant_mes(thread_id=thread, assistant_id='asst_NtVWkelDriet0dw9fSf8WYdr',
         #                                        mes="Напиши еще раз, но не используй никакие символы или теги, "
         #                                            "которые не поддерживает telegram")
         #     await safe_send_message(bot, message, text=msg[1:], reply_markup=fb_ikb())
-        await state.update_data({'plain': msg})
+        await state.update_data({'plain': msg[1:]})
         await state.set_state(CreateResume.waiting_fb)
     else:
         # try:
